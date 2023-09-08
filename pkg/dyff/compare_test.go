@@ -654,9 +654,9 @@ listY: [ Yo, Yo, Yo ]
 				}
 			})
 
-			It("should fail to compare files with different number of documents", func() {
-				from := ytbx.InputFile{Location: "/ginkgo/compare/test/from", Documents: multiDoc("foo: bar", "dead: beef")}
-				to := ytbx.InputFile{Location: "/ginkgo/compare/test/to", Documents: multiDoc("bar: foo")}
+			It("should fail to Compare files with different number of documents", func() {
+				from := ytbx.InputFile{Location: "/ginkgo/Compare/test/from", Documents: multiDoc("foo: bar", "dead: beef")}
+				to := ytbx.InputFile{Location: "/ginkgo/Compare/test/to", Documents: multiDoc("bar: foo")}
 
 				_, err := dyff.CompareInputFiles(from, to)
 				Expect(err).To(HaveOccurred())
@@ -785,13 +785,13 @@ listY: [ Yo, Yo, Yo ]
 
 		Context("change root for comparison", func() {
 			It("should change the root of an input file", func() {
-				from := ytbx.InputFile{Location: "/ginkgo/compare/test/from", Documents: multiDoc(`---
+				from := ytbx.InputFile{Location: "/ginkgo/Compare/test/from", Documents: multiDoc(`---
 a: foo
 ---
 b: bar
 `)}
 
-				to := ytbx.InputFile{Location: "/ginkgo/compare/test/to", Documents: multiDoc(`{
+				to := ytbx.InputFile{Location: "/ginkgo/Compare/test/to", Documents: multiDoc(`{
 "items": [
   {"a": "Foo"},
   {"b": "Bar"}
@@ -844,7 +844,7 @@ b: bar
 			})
 		})
 
-		Context("checking known issues of compare", func() {
+		Context("checking known issues of Compare", func() {
 			It("should not return order change differences in case the named-entry list does not have unique identifiers", func() {
 				from, to, err := ytbx.LoadFiles("../../assets/issues/issue-38/from.yml", "../../assets/issues/issue-38/to.yml")
 				Expect(err).To(BeNil())
@@ -898,8 +898,8 @@ b: bar
 			})
 
 			It("should detect order changes in simple lists with duplicate entries", func() {
-				from := ytbx.InputFile{Location: "/ginkgo/compare/test/from", Documents: multiDoc(`{ "keys": [ "value1", "value2", "value1", "value2" ] }`)}
-				to := ytbx.InputFile{Location: "/ginkgo/compare/test/to", Documents: multiDoc(`{ "keys": [ "value1", "value1", "value2", "value2" ] }`)}
+				from := ytbx.InputFile{Location: "/ginkgo/Compare/test/from", Documents: multiDoc(`{ "keys": [ "value1", "value2", "value1", "value2" ] }`)}
+				to := ytbx.InputFile{Location: "/ginkgo/Compare/test/to", Documents: multiDoc(`{ "keys": [ "value1", "value1", "value2", "value2" ] }`)}
 
 				results, err := dyff.CompareInputFiles(from, to)
 				Expect(err).ToNot(HaveOccurred())
@@ -948,14 +948,14 @@ b: bar
 
 			It("should report that a document was added", func() {
 				from := ytbx.InputFile{
-					Location: "/ginkgo/compare/test/from",
+					Location: "/ginkgo/Compare/test/from",
 					Documents: multiDoc(
 						`{"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "x"}}`,
 					),
 				}
 
 				to := ytbx.InputFile{
-					Location: "/ginkgo/compare/test/to",
+					Location: "/ginkgo/Compare/test/to",
 					Documents: multiDoc(
 						`{"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "x"}}`,
 						`{"apiVersion": "v1", "kind": "Service", "metadata": {"name": "y"}}`,
@@ -972,7 +972,7 @@ b: bar
 
 			It("should report that a document was removed", func() {
 				from := ytbx.InputFile{
-					Location: "/ginkgo/compare/test/from",
+					Location: "/ginkgo/Compare/test/from",
 					Documents: multiDoc(
 						`{"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "x"}}`,
 						`{"apiVersion": "v1", "kind": "Service", "metadata": {"name": "y"}}`,
@@ -980,7 +980,7 @@ b: bar
 				}
 
 				to := ytbx.InputFile{
-					Location: "/ginkgo/compare/test/to",
+					Location: "/ginkgo/Compare/test/to",
 					Documents: multiDoc(
 						`{"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "x"}}`,
 					),
@@ -996,7 +996,7 @@ b: bar
 
 			It("should omit nil/empty documents", func() {
 				from := ytbx.InputFile{
-					Location: "/ginkgo/compare/test/from",
+					Location: "/ginkgo/Compare/test/from",
 					Documents: multiDoc(
 						`{"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "x"}}`,
 						`{"apiVersion": "v1", "kind": "Service", "metadata": {"name": "y"}}`,
@@ -1004,7 +1004,7 @@ b: bar
 				}
 
 				to := ytbx.InputFile{
-					Location: "/ginkgo/compare/test/to",
+					Location: "/ginkgo/Compare/test/to",
 					Documents: multiDoc(
 						`{"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "x"}}`,
 						``,

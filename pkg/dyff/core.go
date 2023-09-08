@@ -33,18 +33,18 @@ import (
 	yamlv3 "gopkg.in/yaml.v3"
 )
 
-// CompareOption sets a specific compare setting for the object comparison
-type CompareOption func(*compareSettings)
+// CompareOption sets a specific Compare setting for the object comparison
+type CompareOption func(*CompareSettings)
 
-type compareSettings struct {
+type CompareSettings struct {
 	NonStandardIdentifierGuessCountThreshold int
 	IgnoreOrderChanges                       bool
 	KubernetesEntityDetection                bool
 	AdditionalIdentifiers                    []ListItemIdentifierField
 }
 
-type compare struct {
-	settings compareSettings
+type Compare struct {
+	Settings CompareSettings
 }
 
 // ListItemIdentifierField names the field that identifies a list.
@@ -53,7 +53,7 @@ type ListItemIdentifierField string
 // AdditionalIdentifiers specifies additional identifiers that will be
 // used as the key for matcing maps from source to target.
 func AdditionalIdentifiers(ids ...string) CompareOption {
-	return func(settings *compareSettings) {
+	return func(settings *CompareSettings) {
 		for _, i := range ids {
 			settings.AdditionalIdentifiers = append(settings.AdditionalIdentifiers, ListItemIdentifierField(i))
 		}
@@ -65,21 +65,21 @@ func AdditionalIdentifiers(ids ...string) CompareOption {
 // name. Or in short, if the lists only contain two entries each, there are more
 // possibilities to find unique enough key, which might not qualify as such.
 func NonStandardIdentifierGuessCountThreshold(nonStandardIdentifierGuessCountThreshold int) CompareOption {
-	return func(settings *compareSettings) {
+	return func(settings *CompareSettings) {
 		settings.NonStandardIdentifierGuessCountThreshold = nonStandardIdentifierGuessCountThreshold
 	}
 }
 
 // IgnoreOrderChanges disables the detection for changes of the order in lists
 func IgnoreOrderChanges(value bool) CompareOption {
-	return func(settings *compareSettings) {
+	return func(settings *CompareSettings) {
 		settings.IgnoreOrderChanges = value
 	}
 }
 
 // KubernetesEntityDetection enabled detecting entity identifiers from Kubernetes "kind:" and "metadata:" fields.
 func KubernetesEntityDetection(value bool) CompareOption {
-	return func(settings *compareSettings) {
+	return func(settings *CompareSettings) {
 		settings.KubernetesEntityDetection = value
 	}
 }
@@ -89,22 +89,22 @@ func KubernetesEntityDetection(value bool) CompareOption {
 // contain multiple documents. It returns a report with the list of differences.
 func CompareInputFiles(from ytbx.InputFile, to ytbx.InputFile, compareOptions ...CompareOption) (Report, error) {
 	// initialize the comparator with the tool defaults
-	cmpr := compare{
-		settings: compareSettings{
+	cmpr := Compare{
+		Settings: CompareSettings{
 			NonStandardIdentifierGuessCountThreshold: 3,
 			IgnoreOrderChanges:                       false,
 			KubernetesEntityDetection:                true,
 		},
 	}
 
-	// apply the optional compare options provided to this function call
+	// apply the optional Compare options provided to this function call
 	for _, compareOption := range compareOptions {
-		compareOption(&cmpr.settings)
+		compareOption(&cmpr.Settings)
 	}
 
-	// in case Kubernetes mode is enabled, try to compare documents in the YAML
+	// in case Kubernetes mode is enabled, try to Compare documents in the YAML
 	// file by their names rather than just by the order of the documents
-	if cmpr.settings.KubernetesEntityDetection {
+	if cmpr.Settings.KubernetesEntityDetection {
 		var fromDocs, toDocs []*yamlv3.Node
 		var fromNames, toNames []string
 
@@ -135,7 +135,7 @@ func CompareInputFiles(from ytbx.InputFile, to ytbx.InputFile, compareOptions ..
 			to.Documents, to.Names = toDocs, toNames
 
 			// Compare the document nodes, in case of an error it will fall back to the default
-			// implementation and continue to compare the files without any special semantics
+			// implementation and continue to Compare the files without any special semantics
 			if result, err := cmpr.documentNodes(from, to); err == nil {
 				return Report{from, to, result}, nil
 			}
@@ -167,7 +167,7 @@ func CompareInputFiles(from ytbx.InputFile, to ytbx.InputFile, compareOptions ..
 	return Report{from, to, result}, nil
 }
 
-func (compare *compare) objects(path ytbx.Path, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
+func (compare *Compare) objects(path ytbx.Path, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
 	switch {
 	case from == nil && to == nil:
 		return []Diff{}, nil
@@ -196,7 +196,7 @@ func (compare *compare) objects(path ytbx.Path, from *yamlv3.Node, to *yamlv3.No
 	return compare.nonNilSameKindNodes(path, from, to)
 }
 
-func (compare *compare) nonNilSameKindNodes(path ytbx.Path, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
+func (compare *Compare) nonNilSameKindNodes(path ytbx.Path, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
 	var diffs []Diff
 	var err error
 
@@ -235,13 +235,13 @@ func (compare *compare) nonNilSameKindNodes(path ytbx.Path, from *yamlv3.Node, t
 		diffs, err = compare.objects(path, from.Alias, to.Alias)
 
 	default:
-		err = fmt.Errorf("failed to compare objects due to unsupported kind %v", from.Kind)
+		err = fmt.Errorf("failed to Compare objects due to unsupported kind %v", from.Kind)
 	}
 
 	return diffs, err
 }
 
-func (compare *compare) documentNodes(from, to ytbx.InputFile) ([]Diff, error) {
+func (compare *Compare) documentNodes(from, to ytbx.InputFile) ([]Diff, error) {
 	var result []Diff
 
 	type doc struct {
@@ -339,7 +339,7 @@ func (compare *compare) documentNodes(from, to ytbx.InputFile) ([]Diff, error) {
 		)
 	}
 
-	if !compare.settings.IgnoreOrderChanges && len(fromNames) == len(toNames) {
+	if !compare.Settings.IgnoreOrderChanges && len(fromNames) == len(toNames) {
 		for i := range fromNames {
 			if fromNames[i] != toNames[i] {
 				diff.Details = append(diff.Details, Detail{
@@ -359,7 +359,7 @@ func (compare *compare) documentNodes(from, to ytbx.InputFile) ([]Diff, error) {
 	return result, nil
 }
 
-func (compare *compare) mappingNodes(path ytbx.Path, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
+func (compare *Compare) mappingNodes(path ytbx.Path, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
 	result := make([]Diff, 0)
 	removals := []*yamlv3.Node{}
 	additions := []*yamlv3.Node{}
@@ -431,7 +431,7 @@ func (compare *compare) mappingNodes(path ytbx.Path, from *yamlv3.Node, to *yaml
 	return result, nil
 }
 
-func (compare *compare) sequenceNodes(path ytbx.Path, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
+func (compare *Compare) sequenceNodes(path ytbx.Path, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
 	// Bail out quickly if there is nothing to check
 	if len(from.Content) == 0 && len(to.Content) == 0 {
 		return []Diff{}, nil
@@ -441,7 +441,7 @@ func (compare *compare) sequenceNodes(path ytbx.Path, from *yamlv3.Node, to *yam
 		return compare.namedEntryLists(path, identifier, from, to)
 	}
 
-	if identifier := getNonStandardIdentifierFromNamedLists(from, to, compare.settings.NonStandardIdentifierGuessCountThreshold); identifier != "" {
+	if identifier := getNonStandardIdentifierFromNamedLists(from, to, compare.Settings.NonStandardIdentifierGuessCountThreshold); identifier != "" {
 		d, err := compare.namedEntryLists(path, identifier, from, to)
 		if err != nil {
 			return nil, fmt.Errorf("sequenceNodes(nonstd): %w", err)
@@ -450,7 +450,7 @@ func (compare *compare) sequenceNodes(path ytbx.Path, from *yamlv3.Node, to *yam
 		return d, nil
 	}
 
-	if compare.settings.KubernetesEntityDetection {
+	if compare.Settings.KubernetesEntityDetection {
 		if identifier, err := getIdentifierFromKubernetesEntityList(from, to); err == nil {
 			return compare.namedEntryLists(path, identifier, from, to)
 		}
@@ -459,14 +459,14 @@ func (compare *compare) sequenceNodes(path ytbx.Path, from *yamlv3.Node, to *yam
 	return compare.simpleLists(path, from, to)
 }
 
-func (compare *compare) simpleLists(path ytbx.Path, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
+func (compare *Compare) simpleLists(path ytbx.Path, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
 	removals := make([]*yamlv3.Node, 0)
 	additions := make([]*yamlv3.Node, 0)
 
 	fromLength := len(from.Content)
 	toLength := len(to.Content)
 
-	// Special case if both lists only contain one entry, then directly compare
+	// Special case if both lists only contain one entry, then directly Compare
 	// the two entries with each other
 	if fromLength == 1 && fromLength == toLength {
 		return compare.objects(
@@ -530,7 +530,7 @@ func (compare *compare) simpleLists(path ytbx.Path, from *yamlv3.Node, to *yamlv
 	}
 
 	var orderChanges []Detail
-	if !compare.settings.IgnoreOrderChanges {
+	if !compare.Settings.IgnoreOrderChanges {
 		orderChanges = compare.findOrderChangesInSimpleList(fromCommon, toCommon)
 	}
 
@@ -550,7 +550,7 @@ func nameFromPath(node *yamlv3.Node, field ListItemIdentifierField) (string, err
 	return nameFromPath(val, ListItemIdentifierField(parts[1]))
 }
 
-func (compare *compare) namedEntryLists(path ytbx.Path, identifier ListItemIdentifierField, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
+func (compare *Compare) namedEntryLists(path ytbx.Path, identifier ListItemIdentifierField, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
 	removals := make([]*yamlv3.Node, 0)
 	additions := make([]*yamlv3.Node, 0)
 
@@ -561,7 +561,7 @@ func (compare *compare) namedEntryLists(path ytbx.Path, identifier ListItemIdent
 	fromNames := make([]string, 0, fromLength)
 	toNames := make([]string, 0, fromLength)
 
-	// Find entries that are common to both lists to compare them separately, and
+	// Find entries that are common to both lists to Compare them separately, and
 	// find entries that are only in from, but not to and are therefore removed
 	for _, fromEntry := range from.Content {
 		name, err := nameFromPath(fromEntry, identifier)
@@ -606,14 +606,14 @@ func (compare *compare) namedEntryLists(path ytbx.Path, identifier ListItemIdent
 	}
 
 	var orderChanges []Detail
-	if !compare.settings.IgnoreOrderChanges {
+	if !compare.Settings.IgnoreOrderChanges {
 		orderChanges = findOrderChangesInNamedEntryLists(fromNames, toNames)
 	}
 
 	return packChangesAndAddToResult(result, path, orderChanges, additions, removals)
 }
 
-func (compare *compare) nodeValues(path ytbx.Path, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
+func (compare *Compare) nodeValues(path ytbx.Path, from *yamlv3.Node, to *yamlv3.Node) ([]Diff, error) {
 	result := make([]Diff, 0)
 	if strings.Compare(from.Value, to.Value) != 0 {
 		result = append(result, Diff{
@@ -629,7 +629,7 @@ func (compare *compare) nodeValues(path ytbx.Path, from *yamlv3.Node, to *yamlv3
 	return result, nil
 }
 
-func (compare *compare) findOrderChangesInSimpleList(fromCommon, toCommon []*yamlv3.Node) []Detail {
+func (compare *Compare) findOrderChangesInSimpleList(fromCommon, toCommon []*yamlv3.Node) []Detail {
 	// Try to find order changes ...
 	if len(fromCommon) == len(toCommon) {
 		for idx := range fromCommon {
@@ -649,7 +649,7 @@ func (compare *compare) findOrderChangesInSimpleList(fromCommon, toCommon []*yam
 // hasEntry returns whether the given node is in the provided list. Not exactly
 // a fast or efficient way to verify that a node is already in a list, but
 // given that this should rarely be used it is ok for now.
-func (compare *compare) hasEntry(list []*yamlv3.Node, searchEntry *yamlv3.Node) bool {
+func (compare *Compare) hasEntry(list []*yamlv3.Node, searchEntry *yamlv3.Node) bool {
 	var searchEntryHash = compare.calcNodeHash(searchEntry)
 	for _, listEntry := range list {
 		if searchEntryHash == compare.calcNodeHash(listEntry) {
@@ -791,22 +791,22 @@ func getEntryFromNamedList(sequenceNode *yamlv3.Node, identifier ListItemIdentif
 	return nil, false
 }
 
-func (compare *compare) listItemIdentifierCandidates() []ListItemIdentifierField {
+func (compare *Compare) listItemIdentifierCandidates() []ListItemIdentifierField {
 	// Set default candidates that are most widly used
 	var candidates = []ListItemIdentifierField{"name", "key", "id"}
 
 	// Add user supplied additional candidates (taking precedence over defaults)
-	candidates = append(compare.settings.AdditionalIdentifiers, candidates...)
+	candidates = append(compare.Settings.AdditionalIdentifiers, candidates...)
 
 	// Add Kubernetes specific extra candidate
-	if compare.settings.KubernetesEntityDetection {
+	if compare.Settings.KubernetesEntityDetection {
 		candidates = append(candidates, "manager")
 	}
 
 	return candidates
 }
 
-func (compare *compare) getIdentifierFromNamedLists(listA, listB *yamlv3.Node) (ListItemIdentifierField, error) {
+func (compare *Compare) getIdentifierFromNamedLists(listA, listB *yamlv3.Node) (ListItemIdentifierField, error) {
 	isCandidate := func(node *yamlv3.Node) bool {
 		if node.Kind == yamlv3.ScalarNode {
 			for _, entry := range compare.listItemIdentifierCandidates() {
@@ -966,7 +966,7 @@ func getNonStandardIdentifierFromNamedLists(listA, listB *yamlv3.Node, nonStanda
 	return ""
 }
 
-func (compare *compare) createLookUpMap(sequenceNode *yamlv3.Node) map[uint64][]int {
+func (compare *Compare) createLookUpMap(sequenceNode *yamlv3.Node) map[uint64][]int {
 	result := make(map[uint64][]int, len(sequenceNode.Content))
 	for idx, entry := range sequenceNode.Content {
 		hash := compare.calcNodeHash(entry)
@@ -980,7 +980,7 @@ func (compare *compare) createLookUpMap(sequenceNode *yamlv3.Node) map[uint64][]
 	return result
 }
 
-func (compare *compare) basicType(node *yamlv3.Node) interface{} {
+func (compare *Compare) basicType(node *yamlv3.Node) interface{} {
 	switch node.Kind {
 	case yamlv3.DocumentNode:
 		panic("document nodes are not supported to be translated into a basic type")
@@ -997,7 +997,7 @@ func (compare *compare) basicType(node *yamlv3.Node) interface{} {
 	case yamlv3.SequenceNode:
 		result := []interface{}{}
 
-		if compare.settings.IgnoreOrderChanges {
+		if compare.Settings.IgnoreOrderChanges {
 			sortNode(node)
 		}
 
@@ -1018,7 +1018,7 @@ func (compare *compare) basicType(node *yamlv3.Node) interface{} {
 	}
 }
 
-func (compare *compare) calcNodeHash(node *yamlv3.Node) (hash uint64) {
+func (compare *Compare) calcNodeHash(node *yamlv3.Node) (hash uint64) {
 	var err error
 
 	switch node.Kind {
