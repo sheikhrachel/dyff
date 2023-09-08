@@ -36,13 +36,19 @@ import (
 // CompareOption sets a specific Compare setting for the object comparison
 type CompareOption func(*CompareSettings)
 
+// CompareSettings encapsulates the settings for the object comparison
 type CompareSettings struct {
+	// NonStandardIdentifierGuessCountThreshold specifies how many list entries are
 	NonStandardIdentifierGuessCountThreshold int
-	IgnoreOrderChanges                       bool
-	KubernetesEntityDetection                bool
-	AdditionalIdentifiers                    []ListItemIdentifierField
+	// IgnoreOrderChanges disables the detection for changes of the order in lists
+	IgnoreOrderChanges bool
+	// KubernetesEntityDetection enabled detecting entity identifiers from Kubernetes "kind:" and "metadata:" fields.
+	KubernetesEntityDetection bool
+	// AdditionalIdentifiers specifies additional identifiers that will be used as the key for matching maps from source to target.
+	AdditionalIdentifiers []ListItemIdentifierField
 }
 
+// Compare is a struct that backs the file comparison functionality and holds a CompareSettings object
 type Compare struct {
 	Settings CompareSettings
 }
